@@ -11,6 +11,7 @@ git-subrepo                      baishancloud/git-subrepo master git-subrepo
 
 .travis.yml                      openacid/gh-config       master travis/travis-go.yml
 
+scripts/pykit                    bsc-s2/pykit             master
 
 # git-subrepo
 #   for maintaining sub git repo

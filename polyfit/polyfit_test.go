@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/openacid/slim/benchhelper"
 	"github.com/openacid/slim/polyfit"
 )
 
@@ -52,7 +53,7 @@ func TestFoo(t *testing.T) {
 		rst := polyfit.Resample32To4(nums, width)
 		// for i, rg := range rst.Regions {
 		//     fmt.Println("region: ", i, polyfit.PolyStr(rg.Poly),
-		//         polyfit.SizeStruct(rg))
+		//         polyfit.SizeOf(rg))
 		// }
 
 		for i, n := range nums {
@@ -62,8 +63,8 @@ func TestFoo(t *testing.T) {
 			}
 		}
 
-		fmt.Println(width, polyfit.SizeStruct(rst.Datas))
-		fmt.Println(width, polyfit.SizeStruct(rst), polyfit.SizeStruct(nums))
+		fmt.Println(width, benchhelper.SizeOf(rst.Datas))
+		fmt.Println(width, benchhelper.SizeOf(rst), benchhelper.SizeOf(nums))
 	}
 
 	// // Initialize two matrices, a and ia.

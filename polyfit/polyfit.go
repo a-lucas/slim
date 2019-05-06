@@ -2,10 +2,7 @@ package polyfit
 
 import (
 	"fmt"
-	"math"
-	"reflect"
 	"strings"
-	"unsafe"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -173,14 +170,14 @@ type reg struct {
 type XArray32 struct {
 	polyDegree byte
 	eltWidth   byte
-	eltMask    uint64
 	eltPerWord byte
+	eltMask    uint64
 
 	// Regions    []reg
 	Poly  [][]float64
 	start []int32
 
-	Datas      []uint64
+	Datas []uint64
 }
 
 func (x *XArray32) Get(i int32) int32 {
@@ -194,7 +191,6 @@ func (x *XArray32) Get(i int32) int32 {
 	r := x.Poly[j-1]
 
 	v := eval(r, float64(i))
-	// v = math.Round(v)
 
 	d := x.Datas[i/int32(x.eltPerWord)] >> (uint(i%int32(x.eltPerWord)) * uint(x.eltWidth))
 	return int32(v) + int32(d&uint64(x.eltMask))
@@ -226,7 +222,7 @@ func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
 		Datas:      make([]uint64, nWords),
 	}
 
-	debugdata := []int{}
+	debugdata := []int32{}
 
 	for start := 0; start < n; {
 		poly, nn := FindPoly(xs[start:], ys[start:], int(rst.polyDegree), margin)
@@ -234,16 +230,14 @@ func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
 
 		rst.start = append(rst.start, int32(start))
 		rst.Poly = append(rst.Poly, poly)
-		// rst.Regions = append(rst.Regions, reg{Poly: poly, start: int32(start)})
 
 		for i := 0; i < nn; i++ {
 			j := start + i
 
 			v := eval(poly, xs[j])
-			v = math.Round(v)
 
-			d := int(ys[j] - v)
-			if d > marginInt {
+			d := nums[j] - int32(v)
+			if d > int32(marginInt) {
 				panic(fmt.Sprintf("d must smaller than %d", marginInt))
 			}
 
@@ -256,79 +250,4 @@ func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
 	}
 
 	return rst
-}
-
-func SizeStruct(data interface{}) int {
-	return sizeof(reflect.ValueOf(data))
-}
-
-func sizeof(v reflect.Value) int {
-	switch v.Kind() {
-	case reflect.Map:
-		sum := 0
-		keys := v.MapKeys()
-		for i := 0; i < len(keys); i++ {
-			mapkey := keys[i]
-			s := sizeof(mapkey)
-			if s < 0 {
-				return -1
-			}
-			sum += s
-			s = sizeof(v.MapIndex(mapkey))
-			if s < 0 {
-				return -1
-			}
-			sum += s
-		}
-		return sum
-	case reflect.Slice, reflect.Array:
-		sum := 0
-		for i, n := 0, v.Len(); i < n; i++ {
-			s := sizeof(v.Index(i))
-			if s < 0 {
-				return -1
-			}
-			sum += s
-		}
-		return sum
-
-	case reflect.String:
-		sum := 0
-		for i, n := 0, v.Len(); i < n; i++ {
-			s := sizeof(v.Index(i))
-			if s < 0 {
-				return -1
-			}
-			sum += s
-		}
-		return sum
-
-	case reflect.Ptr, reflect.Interface:
-		p := (*[]byte)(unsafe.Pointer(v.Pointer()))
-		if p == nil {
-			return 0
-		}
-		return sizeof(v.Elem())
-	case reflect.Struct:
-		sum := 0
-		for i, n := 0, v.NumField(); i < n; i++ {
-			s := sizeof(v.Field(i))
-			if s < 0 {
-				return -1
-			}
-			sum += s
-		}
-		return sum
-
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
-		reflect.Int:
-		return int(v.Type().Size())
-
-	default:
-		fmt.Println("t.Kind() no found:", v.Kind())
-	}
-
-	return -1
 }

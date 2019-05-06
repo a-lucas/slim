@@ -226,7 +226,6 @@ func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
 
 	for start := 0; start < n; {
 		poly, nn := FindPoly(xs[start:], ys[start:], int(rst.polyDegree), margin)
-		// fmt.Println(poly, "start:", start, "num:", nn)
 
 		rst.start = append(rst.start, int32(start))
 		rst.Poly = append(rst.Poly, poly)

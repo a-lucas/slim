@@ -90,18 +90,7 @@ func PolyFit(xs, ys []float64, degree int) []float64 {
 
 // eval evaluates polynomial at x
 func eval(poly []float64, x float64) float64 {
-
-	// return poly[0] + poly[1]*x + poly[2]*x*x + poly[3]*x*x*x
-	return poly[0] + poly[1]*x + poly[2]*x*x
-
-	// rst := float64(0)
-	// pow := float64(1)
-	// for _, coef := range poly {
-	//     rst += coef * pow
-	//     pow *= x
-	// }
-
-	// return rst
+	return poly[0] + poly[1]*x + poly[2]*x*x + poly[3]*x*x*x
 }
 
 // maxminResiduals finds max and min offset along a curve.
@@ -168,10 +157,11 @@ type reg struct {
 }
 
 type XArray32 struct {
-	polyDegree byte
-	eltWidth   byte
-	eltPerWord byte
-	eltMask    uint64
+	polyDegree       byte
+	eltWidth         byte
+	eltPerWord       byte
+	inWordIndexWidth uint8
+	eltMask          uint64
 
 	// Regions    []reg
 	Poly  [][]float64
@@ -182,22 +172,30 @@ type XArray32 struct {
 
 func (x *XArray32) Get(i int32) int32 {
 	var j int
-	for j = 0; j < len(x.start); j++ {
-		if i < x.start[j] {
-			break
-		}
+	l := len(x.start)
+	for j = 0; j < l && i >= x.start[j]; j++ {
 	}
 
 	r := x.Poly[j-1]
 
 	v := eval(r, float64(i))
 
-	d := x.Datas[i/int32(x.eltPerWord)] >> (uint(i%int32(x.eltPerWord)) * uint(x.eltWidth))
+	// d := x.Datas[i/int32(x.eltPerWord)]
+	d := x.Datas[i>>x.inWordIndexWidth]
+	d = d >> (uint(i&int32((1<<x.inWordIndexWidth)-1)) * uint(x.eltWidth))
 	return int32(v) + int32(d&uint64(x.eltMask))
 
 }
 
 func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
+	lg := map[uint]uint8{
+		1:  6,
+		2:  5,
+		4:  4,
+		8:  3,
+		16: 2,
+	}
+
 	n := len(nums)
 	xs := make([]float64, n)
 	ys := make([]float64, n)
@@ -215,11 +213,12 @@ func Resample32To4(nums []int32, eltWidth uint) *XArray32 {
 	nWords := (n + int(eltPerWord) - 1) / int(eltPerWord)
 
 	rst := &XArray32{
-		polyDegree: 2,
-		eltWidth:   byte(eltWidth),
-		eltMask:    (1 << eltWidth) - 1,
-		eltPerWord: byte(eltPerWord),
-		Datas:      make([]uint64, nWords),
+		polyDegree:       3,
+		eltWidth:         byte(eltWidth),
+		eltMask:          (1 << eltWidth) - 1,
+		inWordIndexWidth: uint8(lg[eltWidth]),
+		eltPerWord:       byte(eltPerWord),
+		Datas:            make([]uint64, nWords),
 	}
 
 	debugdata := []int32{}

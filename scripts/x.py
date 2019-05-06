@@ -124,7 +124,7 @@ polys = [[x, syms[i]] for i, x in enumerate(polys)]
 for l in Polynomial.plot(polys, rng,
                          rangey=[0, 1500],
                          height=40,
-                         # points=zip(xs, ys)
+                         points=zip(xs, ys)
 ):
     print l
 
